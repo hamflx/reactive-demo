@@ -1,29 +1,28 @@
-const Construct = Symbol("construct");
+export const Construct = Symbol("construct");
 
-type Construct = typeof Construct;
+export type Construct = typeof Construct;
 
-type Property = string | symbol | Construct;
-type Paths = Property[];
+export type Property = string | symbol | Construct;
+export type Paths = Property[];
 
-type Collector = (
+export type Collector = (
   paths: Paths,
   value: any,
   before: any,
 ) => void;
 
-const magicProperties = ["prototype"];
+export const magicProperties = ["prototype"];
 
-const chain =
+export const chain =
   (property: Property, collector: Collector): Collector =>
   (paths, value, before) => collector([property, ...paths], value, before);
 
-const reactive = <T extends object>(
+export const reactive = <T extends object>(
   obj: T,
   collector: Collector,
 ): T => {
   const proxyObject = new Proxy(obj, {
     construct(target, argArray, newTarget) {
-      console.log("==> construct", target);
       const obj = Reflect.construct(target as any, argArray, newTarget);
       if (Object(obj) === obj) {
         return reactive(obj, chain(Construct, collector));
@@ -51,7 +50,7 @@ const reactive = <T extends object>(
   return proxyObject;
 };
 
-const collect = () => {
+export const collect = () => {
   const changes: Array<{ before: any; value: any; paths: Paths }> = [];
   const collector = (
     paths: Paths,
@@ -65,31 +64,3 @@ const collect = () => {
     changes: () => changes,
   };
 };
-
-const changes = collect();
-const o = reactive({
-  a: {
-    b: {
-      c: {
-        value: 3,
-      },
-    },
-  },
-  sss: "3",
-  aaa: "some value",
-}, changes.collector);
-
-const c = o.a.b.c;
-c.value = 5423;
-o.aaa = "hello typescript";
-
-const A = reactive(
-  class AImpl {
-    hello = "typescript";
-  },
-  changes.collector,
-);
-const a = new A();
-a.hello = "rust";
-
-console.log(changes.changes());
